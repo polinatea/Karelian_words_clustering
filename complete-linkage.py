@@ -1,36 +1,3 @@
-#! /usr/bin/python
-
-# data = np.array([
-#         [0.05, 0.95],
-#         [0.1, 0.9],
-#         [0.2, 0.8],
-#         [0.25, 0.75],
-#         [0.45, 0.55],
-#         [0.5, 0.5],
-#         [0.55, 0.45],
-#         [0.85, 0.15],
-#         [0.9, 0.1],
-#         [0.95, 0.05]])
-
-# data = np.array([
-#         [0.40, 0.53],
-#         [0.22, 0.38],
-#         [0.35, 0.32],
-#         [0.26, 0.19],
-#         [0.08, 0.41],
-#         [0.45, 0.30]])
-
-#         [],
-#         [[0.35, 0.32], [0.45, 0.30], [0.22, 0.38], [0.40, 0.53]],
-#         [0.26, 0.19],
-#         [0.08, 0.41]])
-
-# x = data[:,0]
-# y= data[:,1]
-
-# df = pd.DataFrame(data, columns=['x', 'y'])
-# print(df)
-
 def create_data(city_list):
     dict_1 = []
     dict_2 = []
@@ -44,32 +11,6 @@ def create_data(city_list):
     print (data)
     return(data)
 
-# def euclid_dist(x, y):
-#     return sqrt((x[0]-y[0])**2 + (x[1]-y[1])**2)
-
-#def distance_matrix(data):
-#    #Creating empty matrix
-#    v=[0]*len(data)
-#    d_matrix = []
-#    for i in range(len(data)):
-#        d_matrix.append(list(v))
-
-#    min_value=np.Infinity
-#    min_points=(0, 0)
-
-#    #Filling the matrix
-#    for i in range(len(data)):
-#        for j in range(0, i):
-#            dist = euclid_dist(data[i], data[j])
-#            d_matrix[i][j] = dist
-
-#            #Saving minimum value for later usage
-#            if dist < min_value:
-#                min_value = dist
-#                min_points = (i, j)
-
-
-#    return((d_matrix, (min_value, min_points)))
 
 max_distance_global = 0
 def difference_table(data, clusters):
