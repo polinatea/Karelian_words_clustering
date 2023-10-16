@@ -1,15 +1,35 @@
-def create_data(city_list):
-    dict_1 = []
-    dict_2 = []
+from numpy import append
+import pymysql
+import time
+import random
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.ticker as ticker
+from numpy import append
+#server connection
+mydb = pymysql.connect(
+  host="localhost",
+    database="murreh",
+    user = 'root'
+)
 
-    for i in range(len(city_list)):
-        dict_1.append(city_list[i]["words"][0])
-        dict_2.append(city_list[i]["words"][1])
+mycursor = mydb.cursor() #cursor created
+q = "Гармония"
+
+mycursor.execute("select qsections.id from qsections where title = %s",(q))
+rows = mycursor.fetchall()
 
 
-    data = (dict_1, dict_2)
-    print (data)
-    return(data)
+for row in rows:
+    s = row
+qsectionId = s[0]
+
+mycursor.execute("select distinct answers.answer,places.name_ru, questions.question from places, \
+  answers, anketas, anketa_question, questions, qsections where (anketas.place_id = places.id)\
+     and (anketas.id =anketa_question.anketa_id) and (anketa_question.answer_id = answers.id) \
+       and (anketa_question.question_id = questions.id) and (questions.qsection_id = qsections.id)\
+          and (qsections.id = %s) order by questions.question;",(qsectionId))
+rows = mycursor.fetchall()
 
 
 max_distance_global = 0
@@ -75,55 +95,110 @@ def create_first_clusters():
     return (clusters)
 
 
-if __name__ == "__main__":
-    city_list = [{"city": "Габозеро",
-                "words": [["a"],["a", "c"]]},
+city_list = []
+questionIds = {}
+citiesIds = {}
+data = []
 
-                {"city": "Саригора",
-                "words": [["b"],["b"]]},
+for t in rows: 
+  # Если текущий вопрос еще не попадался
+  if t[2] not in questionIds.keys():
+    # берем айди согласно длине словаря айдишников
+    questionInd = len(questionIds)
+    # добавляем вопрос в словарь айдишников
+    questionIds[t[2]] = questionInd
+    # добавляем в лист data новый лист под новый вопрос
+    data.append([])
+    # добавляем к данному вопросу листы под все города
+    for i in range(len(citiesIds)):
+      data[questionInd].append([])
 
-                {"city": "Койкоры",
-                "words": [["a", "c"], ["c"]]},
+  # иначе берем индекс уже существующего вопроса
+  else:
+    questionInd = questionIds[t[2]]
+  # если текущий город еще не в словаре айдишников
+  if t[1] not in citiesIds.keys():
+    # вычисляем будущий айдишник по длине словаря айдишников
+    citiesInd = len(citiesIds)
+    # добавляем город в словарь айдишников
+    citiesIds[t[1]] = citiesInd
+    # добавляем город в список городов (для вывода кластеров)
+    city_list.append(t[1])
+    # добавляем к данному вопросу лист для следующего города 
+    for el in data:
+      el.append([])
+  # иначе берем индекс уже существующего города
+  else:
+    citiesInd = citiesIds[t[1]]
 
-                {"city": "Виданы",
-                "words": [["d"], ["b"]]}]
-                
-    print("city_list = ", type(city_list))
-    data = create_data(city_list)
-    print(type(data))
-    clusters = create_first_clusters()
-    print("Data: ", data)
-    print("Clusters: ", clusters)
-
-    step = 0
-    while True:
-        d_matrix_result = difference_table(data, clusters)
-
-        d_matrix = d_matrix_result[0]
-        min_distance=d_matrix_result[1][0]
-        min_points=d_matrix_result[1][1]
-
-        print("Difference matrix for step", step)
-        for elem in d_matrix:
-            print(elem)
-        print()
-        print("Min distance: ", min_distance, " from points: ", min_points)
-        print()
-        print()
+  # добавляем ответ соотвественно его индексам (вопросу и городу)
+  data[questionInd][citiesInd].append(t[0])
 
 
-        step += 1
-        if min_distance >= max_distance_global:
-            break
+clusters = create_first_clusters()
 
-        clusters[min_points[0]] = clusters[min_points[0]] + clusters[min_points[1]]
-        clusters.pop(min_points[1])
 
-        # print(clusters)
+step = 0
+while True:
+    d_matrix_result = difference_table(data, clusters)
+
+    d_matrix = d_matrix_result[0]
+    min_distance=d_matrix_result[1][0]
+    min_points=d_matrix_result[1][1]
+
+    step += 1
+    if min_distance >= max_distance_global:
+        break
+
+    clusters[min_points[0]] = clusters[min_points[0]] + clusters[min_points[1]]
+    clusters.pop(min_points[1])
+
 
 for i in range(len(clusters)):
     cluster=[]
     for city in clusters[i]:
-        cluster.append(city_list[city]["city"])
+        cluster.append(city_list[city])
     
     print("Cluster", i, "=", cluster)
+
+
+colors = ["red","green","cyan","yellow","purple","black","orange","purple","beige","brown","gray","cyan","magenta"]
+
+x_list = [0] * len(city_list)   # [x0  x1    x2  x3]
+y_list = [0] * len(city_list)   # [y0  y1    y2  y3]
+c_final = [0] * len(city_list)  # [red green red green]
+for i in range(len(clusters)):
+    for j in range(len(clusters[i])):
+        c_final[clusters[i][j]] = colors[i]
+        x_list[clusters[i][j]] = random.uniform(0.1, 10.0)
+        y_list[clusters[i][j]] = random.uniform(0.1, 10.0)
+
+fig,ax = plt.subplots()
+sc = plt.scatter(x_list, y_list, c=c_final, alpha=0.8,s=20)     
+annot = ax.annotate("", xy=(0,0), xytext=(20,20),textcoords="offset points",
+bbox=dict(boxstyle="round", fc="w"),
+arrowprops=dict(arrowstyle="->"))
+annot.set_visible(False)
+
+def update_annot(ind):
+    pos = sc.get_offsets()[ind["ind"][0]]
+    text = city_list[ind["ind"][0]]
+    annot.xy = pos
+    annot.set_text(text)
+
+def hover(event):
+    vis = annot.get_visible()
+    if event.inaxes == ax:
+        cont, ind = sc.contains(event)
+        if cont:
+            update_annot(ind)
+            annot.set_visible(True)
+            fig.canvas.draw_idle()
+        else:
+            if vis:
+                annot.set_visible(False)
+                fig.canvas.draw_idle()
+
+fig.canvas.mpl_connect("motion_notify_event", hover)
+
+plt.show()
